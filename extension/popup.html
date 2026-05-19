@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 300px;
+    min-height: 320px;
+    background: rgba(15, 15, 20, 0.95);
+    backdrop-filter: blur(20px) saturate(180%);
+    color: #e2e8f0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 13px;
+    padding: 16px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .logo {
+    width: 24px; height: 24px;
+    background: linear-gradient(135deg, #4F8EF7, #7C5CFC);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: bold;
+  }
+  .title {
+    font-size: 15px; font-weight: 600;
+    background: linear-gradient(90deg, #4F8EF7, #7C5CFC);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .status-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #ef4444;
+    transition: background 0.3s;
+  }
+  .status-dot.connected { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,0.5); }
+  .status-text { font-size: 12px; color: #94a3b8; }
+
+  .btn {
+    width: 100%;
+    padding: 10px 0;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.06);
+    color: #e2e8f0;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .btn:hover {
+    background: rgba(79,142,247,0.15);
+    border-color: rgba(79,142,247,0.4);
+  }
+  .btn.active {
+    background: rgba(79,142,247,0.2);
+    border-color: #4F8EF7;
+    color: #4F8EF7;
+    box-shadow: 0 0 12px rgba(79,142,247,0.15);
+  }
+  .btn .icon { font-size: 15px; }
+
+  .section-label {
+    font-size: 11px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 12px 0 6px;
+  }
+
+  .element-info {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    padding: 10px;
+    margin-top: 8px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px;
+    line-height: 1.6;
+    max-height: 120px;
+    overflow-y: auto;
+    word-break: break-all;
+  }
+  .element-info .label { color: #64748b; }
+  .element-info .value { color: #4F8EF7; }
+  .element-info .tag { color: #22c55e; }
+  .element-info .text-val { color: #fbd38d; }
+
+  .empty-hint {
+    text-align: center;
+    color: #475569;
+    font-size: 12px;
+    padding: 12px 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">F</div>
+  <div class="title">FlowRPA</div>
+</div>
+
+<div class="status-row">
+  <div class="status-dot" id="statusDot"></div>
+  <span class="status-text" id="statusText">未连接</span>
+</div>
+
+<div class="section-label">操作</div>
+<button class="btn" id="pickBtn">
+  <span class="icon">🎯</span> 选择元素
+</button>
+<button class="btn" id="recordBtn">
+  <span class="icon">⏺</span> 开始录制
+</button>
+
+<div class="section-label">最近选择</div>
+<div id="elementInfo" class="element-info">
+  <div class="empty-hint">点击"选择元素"后选取页面元素</div>
+</div>
+
+<script>
+  const statusDot = document.getElementById('statusDot');
+  const statusText = document.getElementById('statusText');
+  const pickBtn = document.getElementById('pickBtn');
+  const recordBtn = document.getElementById('recordBtn');
+  const elementInfo = document.getElementById('elementInfo');
+
+  let picking = false;
+  let recording = false;
+
+  // 检查 WS 连接状态
+  function checkStatus() {
+    chrome.runtime.sendMessage({ type: 'get_ws_status' }, (resp) => {
+      if (chrome.runtime.lastError) return;
+      const connected = resp?.connected || false;
+      statusDot.className = 'status-dot' + (connected ? ' connected' : '');
+      statusText.textContent = connected ? '已连接引擎' : '未连接';
+    });
+  }
+  checkStatus();
+  setInterval(checkStatus, 3000);
+
+  // 选择元素
+  pickBtn.addEventListener('click', () => {
+    picking = !picking;
+    pickBtn.classList.toggle('active', picking);
+    pickBtn.innerHTML = picking
+      ? '<span class="icon">🎯</span> 停止选择'
+      : '<span class="icon">🎯</span> 选择元素';
+
+    chrome.runtime.sendMessage({
+      type: picking ? 'start_pick' : 'stop_pick'
+    }, () => {
+      if (chrome.runtime.lastError) {}
+    });
+  });
+
+  // 录制
+  recordBtn.addEventListener('click', () => {
+    recording = !recording;
+    recordBtn.classList.toggle('active', recording);
+    recordBtn.innerHTML = recording
+      ? '<span class="icon">⏹</span> 停止录制'
+      : '<span class="icon">⏺</span> 开始录制';
+
+    chrome.runtime.sendMessage({
+      type: recording ? 'start_record' : 'stop_record'
+    }, () => {
+      if (chrome.runtime.lastError) {}
+    });
+  });
+
+  // 监听来自 background 的消息
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg.type === 'element_selected' && msg.data) {
+      const d = msg.data;
+      elementInfo.innerHTML = `
+        <div><span class="label">标签: </span><span class="tag">${d.tagName}</span></div>
+        ${d.id ? `<div><span class="label">ID: </span><span class="value">${d.id}</span></div>` : ''}
+        ${d.text ? `<div><span class="label">文本: </span><span class="text-val">"${d.text}"</span></div>` : ''}
+        <div><span class="label">CSS: </span><span class="value">${d.cssSelector || ''}</span></div>
+        <div><span class="label">XPath: </span><span class="value">${d.xpath || ''}</span></div>
+      `;
+      // 自动停止选择模式
+      if (picking) {
+        picking = false;
+        pickBtn.classList.remove('active');
+        pickBtn.innerHTML = '<span class="icon">🎯</span> 选择元素';
+      }
+    }
+
+    if (msg.type === 'ws_status') {
+      const connected = msg.data?.connected || false;
+      statusDot.className = 'status-dot' + (connected ? ' connected' : '');
+      statusText.textContent = connected ? '已连接引擎' : '未连接';
+    }
+  });
+</script>
+
+</body>
+</html>
