@@ -1,0 +1,39 @@
+{
+  "server": {
+    "host": "127.0.0.1",
+    "port": 9222
+  },
+  "browser": {
+    "browser_path": null,
+    "headless": false,
+    "arguments": ["--no-sandbox", "--disable-blink-features=AutomationControlled"]
+  },
+  "llm": {
+    "provider": "openai",
+    "api_key": "",
+    "model": "gpt-4o-mini",
+    "base_url": "https://api.openai.com/v1"
+  },
+  "recorder": {
+    "screenshot_dir": "./screenshots",
+    "max_screenshots": 100
+  },
+  "boss": {
+    "batch_size": 20,
+    "top_n": 10,
+    "min_score": 60,
+    "greet_interval_min": 30,
+    "greet_interval_max": 120,
+    "daily_greet_limit": 100,
+    "download_dir": "~/Downloads/boss_resumes",
+    "greet_template": "您好{name}，我们看了您的简历很感兴趣！",
+    "followup_template": "请问方便发一份完整简历和联系方式给我吗？期待进一步沟通～",
+    "jobs": [
+      {
+        "job_id": "",
+        "title": "",
+        "jd": "职位描述文本..."
+      }
+    ]
+  }
+}
